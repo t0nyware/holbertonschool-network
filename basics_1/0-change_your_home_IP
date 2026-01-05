@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Configures /etc/hosts:
+# - localhost -> 127.0.0.2
+# - facebook.com -> 8.8.8.8
+
+HOSTS_TMP="/tmp/hosts.$$"
+
+# Read current hosts, update localhost and facebook.com mappings
+awk '
+BEGIN { seen_local=0; seen_fb=0 }
+{
+  if ($1 == "127.0.0.1" && $2 == "localhost") {
+    print "127.0.0.2\tlocalhost"
+    seen_local=1
+    next
+  }
+  if ($2 == "localhost" && $1 == "127.0.0.2") {
+    print "127.0.0.2\tlocalhost"
+    seen_local=1
+    next
+  }
+  if ($2 == "facebook.com") {
+    print "8.8.8.8\tfacebook.com"
+    seen_fb=1
+    next
+  }
+  print
+}
+END {
+  if (seen_local == 0) print "127.0.0.2\tlocalhost"
+  if (seen_fb == 0) print "8.8.8.8\tfacebook.com"
+}
+' /etc/hosts > "$HOSTS_TMP"
+
+# Overwrite /etc/hosts without rename (avoids sed -i issues)
+sudo sh -c 'cat "$1" > /etc/hosts' sh "$HOSTS_TMP"
+rm -f "$HOSTS_TMP"
